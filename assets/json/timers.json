@@ -1,0 +1,11 @@
+[
+    {
+        "name": "game",
+        "duration": 10000
+    },
+    {
+        "name": "turn",
+        "duration": 200000,
+        "interval": 10000
+    }
+]
