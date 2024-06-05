@@ -11,7 +11,11 @@ async function gamekick(socket, payload) {
 		}
 
 		// get game //
-		const game = Object.values(games).find((game) => game.id === gameId);
+		const [gameDbId, game] = Object.entries(games).find(([key, value]) => {
+			if (value.id === gameId) {
+				return [key, value];
+			}
+		});
 
 		// check if game exists //
 		if (!game) {
@@ -33,8 +37,15 @@ async function gamekick(socket, payload) {
 			(playerInGame) => playerInGame.id !== target.id
 		);
 
+		game["kicked"] = game["kicked"]
+			? [...game["kicked"], target.id]
+			: [target.id];
+
 		// update db //
-		// await db.collection("inProgress").add(game);
+		await db.collection("in_progress").doc(gameDbId).update({
+			players: game.players,
+			kicked: game.kicked,
+		});
 
 		// send response to sender //
 		socket.emit("game:kick:response", {

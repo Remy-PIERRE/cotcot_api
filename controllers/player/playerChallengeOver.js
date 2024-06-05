@@ -1,4 +1,5 @@
 const games = require("../../model/game");
+const resolutionTimer = require("../timer/resolutionTimer");
 const turnResolution = require("../turn/turnResolution");
 
 async function playerChallengeOver(socket, payload) {
@@ -27,7 +28,8 @@ async function playerChallengeOver(socket, payload) {
 		}
 
 		// update player //
-		playerCurrent.state = "waiting";
+		game.players.find((playerInGame) => playerInGame.id === player.id).state =
+			"waiting";
 
 		// send info to all players in room //
 		socket.emit("game:updated", {
@@ -40,7 +42,23 @@ async function playerChallengeOver(socket, payload) {
 			game.players.filter((playerInGame) => playerInGame.state === "waiting")
 				.length === game.players.length
 		) {
-			turnResolution(socket, game);
+			game.players.map(
+				(playerInGame) => (playerInGame.state = "turn_resolution")
+			);
+
+			resolutionTimer(socket, game);
+
+			// send info to all players in room //
+			socket.emit("game:updated", {
+				success: true,
+				data: game,
+			});
+
+			// send info to all players in room //
+			socket.to(`game_id=${gameId}`).emit("game:updated", {
+				success: true,
+				data: game,
+			});
 		}
 	} catch (error) {}
 }

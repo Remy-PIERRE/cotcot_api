@@ -1,24 +1,24 @@
 const { io, server } = require("./config/server");
+const beBluffConfirm = require("./controllers/bluff/beBluffConfirm.js");
+const doBluffconfirm = require("./controllers/bluff/doBluffConfirm.js");
 const gameCancel = require("./controllers/game/gameCancel");
 const gameCreate = require("./controllers/game/gameCreate");
 const gameGet = require("./controllers/game/gameGet");
 const gameJoin = require("./controllers/game/gameJoin");
 const gamekick = require("./controllers/game/gameKick");
 const gameLeave = require("./controllers/game/gameLeave");
+const gameOverGet = require("./controllers/game/gameOverGet.js");
 const gameStart = require("./controllers/game/gameStart");
 const playerChallengeFailure = require("./controllers/player/playerChallengeFailure.js");
 const playerChallengeOver = require("./controllers/player/playerChallengeOver");
 const playerChallengeSuccess = require("./controllers/player/playerChallengeSuccess.js");
 const playerReady = require("./controllers/player/playerReady");
 const getAllGamesInProgress = require("./controllers/start/getAllGamesInProgress");
-const games = require("./model/game.js");
-
-// get json files //
-// getAssets();
+const { getChallenges } = require("./controllers/start/getChallenges.js");
 
 // get all games in progress at server start //
 getAllGamesInProgress();
-console.log("All games in progress : ", games);
+getChallenges();
 
 // io routing //
 io.on("connection", (socket) => {
@@ -81,6 +81,20 @@ io.on("connection", (socket) => {
 	// challenge failure //
 	socket.on("player:challengeFailure", (payload) => {
 		playerChallengeFailure(socket, payload);
+	});
+
+	socket.on("gameOver:get", (payload) => {
+		gameOverGet(socket, payload);
+	});
+
+	// do bluff confirm //
+	socket.on("doBluff:confirm", (payload) => {
+		doBluffconfirm(socket, payload);
+	});
+
+	// be bluff confirm //
+	socket.on("beBluff:confirm", (payload) => {
+		beBluffConfirm(socket, payload);
 	});
 });
 

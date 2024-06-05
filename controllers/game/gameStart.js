@@ -13,7 +13,11 @@ async function gameStart(socket, payload) {
 		}
 
 		// get game //
-		const game = Object.values(games).find((game) => game.id === gameId);
+		const [gameDbId, game] = Object.entries(games).find(([key, value]) => {
+			if (value.id === gameId) {
+				return [key, value];
+			}
+		});
 
 		// check if game exists //
 		if (!game) {
@@ -37,10 +41,16 @@ async function gameStart(socket, payload) {
 		game.players.map((playerInGame, index) => {
 			playerInGame.team = randomTeamFromGameTeams(game.teams, index);
 			playerInGame.points = 0;
+			playerInGame.state = "";
 		});
 
 		// update db //
-		// await db.collection("inProgress").add(game);
+		await db
+			.collection("in_progress")
+			.doc(gameDbId)
+			.update({
+				...game,
+			});
 
 		// start game timer //
 		gameTimer(socket, game);

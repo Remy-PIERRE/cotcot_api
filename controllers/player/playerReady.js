@@ -18,6 +18,14 @@ async function playerReady(socket, payload) {
 			throw new Error("Player ready : game does not exists");
 		}
 
+		// DEV //
+		game.players.find((p) => p.name === "Sandro").state = "ready";
+		game.players.find((p) => p.name === "Daniel").state = "ready";
+		game.players.find((p) => p.name === "William").state = "ready";
+		game.players.find((p) => p.name === "Pattie").state = "ready";
+		game.players.find((p) => p.name === "Philipe").state = "ready";
+		game.players.find((p) => p.name === "Sabine").state = "ready";
+
 		// check if player in game //
 		const playerCurrent = game.players.find(
 			(playerInGame) => playerInGame.id === player.id
@@ -27,14 +35,21 @@ async function playerReady(socket, payload) {
 		}
 
 		// update player //
-		playerCurrent.state = "ready";
+		if (playerCurrent.state !== "ready") {
+			playerCurrent.state = "ready";
 
-		// if all are ready //
-		if (
-			game.players.filter((playerInGame) => playerInGame.state === "ready")
-				.length === game.players.length
-		) {
-			turnStart(socket, game);
+			// console.log(
+			// 	"players : ",
+			// 	game.players.map((p) => p.state)
+			// );
+
+			// if all are ready //
+			if (
+				game.players.filter((playerInGame) => playerInGame.state === "ready")
+					.length === game.players.length
+			) {
+				turnStart(socket, game);
+			}
 		}
 	} catch (error) {
 		console.log(error);

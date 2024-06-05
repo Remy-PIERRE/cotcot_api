@@ -11,7 +11,7 @@ async function gameCancel(socket, payload) {
 		}
 
 		// get game //
-		const [gameDB, game] = Object.entries(games).find(([key, value]) => {
+		const [gameDbId, game] = Object.entries(games).find(([key, value]) => {
 			if (value.id === gameId) {
 				return [key, value];
 			}
@@ -28,10 +28,10 @@ async function gameCancel(socket, payload) {
 		}
 
 		// send to db //
-		// const response = await db.collection("inProgress").doc(gameDB).delete();
+		await db.collection("in_progress").doc(gameDbId).delete();
 
 		// update games object //
-		delete games[gameDB];
+		delete games[gameDbId];
 
 		// send response to sender //
 		socket.emit("game:canceled", {

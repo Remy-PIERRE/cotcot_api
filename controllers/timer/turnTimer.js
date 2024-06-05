@@ -2,19 +2,21 @@ const timerOptions = require("../../assets/json/timers.json");
 const games = require("../../model/game.js");
 const { db } = require("../../config/database");
 const turnResolution = require("../turn/turnResolution.js");
+const resolutionTimer = require("./resolutionTimer.js");
 
 async function turnTimer(socket, game) {
 	const intervalDuration = timerOptions.find(
 		(option) => option.name === "turn"
 	).interval;
-	const turnDuration = timerOptions.find(
-		(option) => option.name === "turn"
-	).duration;
 
-	const intervalRef = setInterval(() => {
+	let intervalId = setInterval(() => {
 		const gameId = game.id;
 		const gameUpdated = Object.values(games).find((game) => game.id === gameId);
-		const durationLeft = game.turnStart + turnDuration - Date.now();
+		const durationLeft = game.turnStart + game.turnDuration - Date.now();
+
+		if (!game.players.find((p) => p.state === "challenge")) {
+			clearInterval(intervalId);
+		}
 
 		if (
 			durationLeft < 0 ||
@@ -23,12 +25,15 @@ async function turnTimer(socket, game) {
 					(player) => player.state === "turn_resolution"
 				).length === gameUpdated.players.length)
 		) {
-			clearInterval(intervalRef);
+			clearInterval(intervalId);
 
 			// update game //
 			game.players.map(
 				(playerInGame) => (playerInGame.state = "turn_resolution")
 			);
+			game.resolutionStart = Date.now();
+
+			resolutionTimer(socket, game);
 
 			//update DB => remove from in_progress, add to over //
 			// await db.collection("inProgress").add(game);
@@ -45,7 +50,7 @@ async function turnTimer(socket, game) {
 				data: game,
 			});
 
-			turnResolution(socket, game);
+			// turnResolution(socket, game);
 		}
 	}, intervalDuration);
 }

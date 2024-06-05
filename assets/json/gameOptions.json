@@ -1,0 +1,8 @@
+{
+    "turnDuration": 3000,
+    "resolutionDuration": 3000,
+    "bluffChances": 0,
+    "minPlayers": 4,
+    "maxPlayers": 8,
+    "challengeTeam": 99999
+}

@@ -1,11 +1,16 @@
 [
     {
         "name": "game",
-        "duration": 10000
+        "duration": 1000
     },
     {
         "name": "turn",
-        "duration": 200000,
-        "interval": 10000
+        "duration": 10000,
+        "interval": 1000
+    },
+    {
+        "name": "resolution",
+        "duration": 10000,
+        "interval": 1000
     }
 ]
