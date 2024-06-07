@@ -8,7 +8,7 @@ const gameDummy = {
 	duration: 120000,
 	minPlayers: 2,
 	maxPlayers: gameOptions.maxPlayers,
-	id: 853469,
+	id: 853460,
 	state: "in_progress",
 	gameStart: Date.now(),
 	turnDuration: gameOptions.turnDuration,

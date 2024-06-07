@@ -10,9 +10,11 @@ const server = http.createServer(app);
 // TODO - cors origin !!! //
 const io = socketIo(server, {
 	cors: {
-		origin: "*",
+		origin: "http://localhost:5173/",
 		methods: ["GET", "POST"],
 	},
 });
+
+app.use(cors());
 
 module.exports = { io, server };
