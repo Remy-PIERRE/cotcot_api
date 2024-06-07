@@ -1,56 +1,44 @@
 const timerOptions = require("../../assets/json/timers.json");
-const games = require("../../model/game.js");
-const { db } = require("../../config/database");
-const turnResolution = require("../turn/turnResolution.js");
 const resolutionTimer = require("./resolutionTimer.js");
+const { getGameIdDb } = require("../../model/Games.js");
+const { updateGamePlayersIntoDB } = require("../db/update.js");
+const {
+	gameUpdatedToSender,
+	gameUpdatedToAll,
+} = require("../socket/gameUpdated.js");
 
 async function turnTimer(socket, game) {
-	const intervalDuration = timerOptions.find(
-		(option) => option.name === "turn"
-	).interval;
+	const intervalDuration = timerOptions.find((o) => o.name === "turn").interval;
+	const gameIdDb = getGameIdDb(game.id);
 
-	let intervalId = setInterval(() => {
-		const gameId = game.id;
-		const gameUpdated = Object.values(games).find((game) => game.id === gameId);
+	let intervalId = setInterval(async () => {
+		// get duration left //
 		const durationLeft = game.turnStart + game.turnDuration - Date.now();
 
-		if (!game.players.find((p) => p.state === "challenge")) {
+		// clear timer when all players finish challenge phase //
+		if (
+			!game.players.find(
+				(p) => !["waiting", "turn_resolution"].includes(p.state)
+			)
+		) {
 			clearInterval(intervalId);
 		}
 
-		if (
-			durationLeft < 0 ||
-			(gameUpdated &&
-				gameUpdated.players.filter(
-					(player) => player.state === "turn_resolution"
-				).length === gameUpdated.players.length)
-		) {
+		if (durationLeft < 0) {
 			clearInterval(intervalId);
 
 			// update game //
-			game.players.map(
-				(playerInGame) => (playerInGame.state = "turn_resolution")
-			);
+			game.players.map((p) => (p.state = "turn_resolution"));
 			game.resolutionStart = Date.now();
 
 			resolutionTimer(socket, game);
 
-			//update DB => remove from in_progress, add to over //
-			// await db.collection("inProgress").add(game);
+			// update DB //
+			await updateGamePlayersIntoDB(gameIdDb, game.players);
 
-			// send event to sender //
-			socket.emit("game:updated", {
-				success: true,
-				data: game,
-			});
-
-			// send event to all in room //
-			socket.to(`game_id=${game.id}`).emit("game:updated", {
-				success: true,
-				data: game,
-			});
-
-			// turnResolution(socket, game);
+			// emit game updated to all //
+			gameUpdatedToSender(socket, game);
+			gameUpdatedToAll(socket, game);
 		}
 	}, intervalDuration);
 }

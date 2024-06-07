@@ -15,6 +15,10 @@ const playerChallengeSuccess = require("./controllers/player/playerChallengeSucc
 const playerReady = require("./controllers/player/playerReady");
 const getAllGamesInProgress = require("./controllers/start/getAllGamesInProgress");
 const { getChallenges } = require("./controllers/start/getChallenges.js");
+const test = require("./utils/test.js");
+
+// test();
+// return;
 
 // get all games in progress at server start //
 getAllGamesInProgress();

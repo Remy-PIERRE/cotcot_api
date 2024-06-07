@@ -1,17 +1,18 @@
-const { getGameById } = require("../../utils/game");
-const { getPlayerById } = require("../../utils/player");
+const { getGameById, getPlayerById } = require("../../model/Games");
+const turnResolution = require("../turn/turnResolution");
 
 function beBluffConfirm(socket, payload) {
+	console.log("payload : ", payload);
 	// check payload //
-	const { gameId, playerId } = payload;
+	const { gameId, playerId, response } = payload;
 	if (!gameId || !playerId) {
 		return console.log("be bluff confirm : payload missing");
 	}
 
-	// check game //
-	const game = getGameById(gameId);
+	// get game //
+	const [gameIdDb, game] = getGameById(gameId);
 	if (!game) {
-		return console.log("be bluff confirm : game missing");
+		throw new Error("Game does not exists");
 	}
 
 	// check player //
@@ -29,12 +30,14 @@ function beBluffConfirm(socket, payload) {
 	}
 
 	// update player //
-	player.beBluff = "confirm";
+	player.beBluff = response ? "bluff_success" : "bluff_failure";
+
+	turnResolution(socket, game);
 
 	// resolve bluff challenge //
-	if (player.beBluff === "confirm" && duo.doBluff === "success") {
-		duo.points += 1;
-	}
+	// if (player.beBluff === "confirm" && duo.doBluff === "success") {
+	// 	duo.points += 1;
+	// }
 
 	// dev //
 	// console.log(

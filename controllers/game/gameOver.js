@@ -1,81 +1,69 @@
-const { db } = require("../../config/database");
-const games = require("../../model/game");
+const { getGameIdDb, deleteGame } = require("../../model/Games");
+const { deleteGameFromDb } = require("../db/delete");
+const { setIntoDb } = require("../db/set");
+const {
+	gameUpdatedToSender,
+	gameUpdatedToAll,
+} = require("../socket/gameUpdated");
+const { clearRoom } = require("../socket/room");
 
-async function gameOver(socket, gameData) {
-	// get game //
-	if (games) {
-		const [gameDbId, game] = Object.entries(games).find(([key, value]) => {
-			if (value.id === gameData.id) {
-				return [key, value];
-			}
-		});
+async function gameOver(socket, game) {
+	const gameIdDb = getGameIdDb(game.id);
 
-		game.state = "over";
+	game.state = "over";
 
-		// const teamsPoints = game.teams.map((team) => {
-		// 	const points = game.players
-		// 		.filter((player) => player.teams === team)
-		// 		.reduce((a, b) => a + b.points, 0);
-		// 	return {
-		// 		team,
-		// 		points,
-		// 	};
-		// });
+	const teamsPoints = {};
+	game.players.map((player) => {
+		if (player.team in teamsPoints) {
+			teamsPoints[player.team] += player.points;
+		} else {
+			teamsPoints[player.team] = player.points;
+		}
+	});
 
-		const teamsPoints = {};
-		game.players.map((player) => {
-			if (player.team in teamsPoints) {
-				teamsPoints[player.team] += player.points;
-			} else {
-				teamsPoints[player.team] = player.points;
-			}
-		});
+	const winner = Object.entries(teamsPoints).sort(
+		([teamA, pointsA], [teamB, pointsB]) => {
+			if (pointsA < pointsB) return 1;
+			else if (pointsB < pointsA) return -1;
+			else return 0;
+		}
+	)[0][0];
 
-		const winner = Object.entries(teamsPoints).sort(
-			([teamA, pointsA], [teamB, pointsB]) => {
-				if (pointsA < pointsB) return 1;
-				else if (pointsB < pointsA) return -1;
-				else return 0;
-			}
-		)[0][0];
+	game.winner = winner;
+	game.teamsPoints = teamsPoints;
 
-		console.log(teamsPoints);
-		console.log(winner);
+	game.players.map((p) => {
+		delete p.state;
+		delete p.challenge;
+		delete p.battle;
+		delete p.duo;
+		delete p.doBluff;
+		delete p.beBluff;
+		delete p.solo;
+		delete p.teamChallenge;
+		delete p.teamCaptain;
+	});
 
-		game.winner = winner;
-		game.teamsPoints = teamsPoints;
+	// send response && clear room //
+	gameUpdatedToSender(socket, game);
+	gameUpdatedToAll(socket, game);
+	clearRoom(socket, game.id);
 
-		game.players.map((player) => {
-			delete player.challenge;
-			delete player.duo;
-			delete player.state;
-		});
+	delete game.gameStart;
+	delete game.resolutionDuration;
+	delete game.resolutionStart;
+	delete game.turnDuration;
+	delete game.turnStart;
+	delete game.maxPlayers;
+	delete game.minPlayers;
+	delete game.state;
 
-		delete game.gameStart;
-		delete game.resolutionDuration;
-		delete game.resolutionStart;
-		delete game.turnDuration;
-		delete game.turnStart;
+	// send to db //
+	await setIntoDb(game, "over");
+	await deleteGameFromDb(gameIdDb, "in_progress");
 
-		// send to db //
-		await db.collection("over").add(game);
-		await db.collection("in_progress").doc(gameDbId).delete();
-
-		// update games object //
-		delete games[gameDbId];
-
-		// send event to sender //
-		socket.emit("game:updated", {
-			success: true,
-			data: game,
-		});
-
-		// send event to all in room //
-		socket.to(`game_id=${game.id}`).emit("game:updated", {
-			success: true,
-			data: game,
-		});
-	}
+	// update games object //
+	deleteGame(game.id);
 }
 
 module.exports = gameOver;

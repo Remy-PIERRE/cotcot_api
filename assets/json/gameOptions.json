@@ -1,8 +1,12 @@
 {
-    "turnDuration": 3000,
-    "resolutionDuration": 3000,
-    "bluffChances": 0,
-    "minPlayers": 4,
+    "turnDuration": 10000,
+    "resolutionDuration": 10000,
+    "bluffChances": 100,
+    "minPlayers": 2,
     "maxPlayers": 8,
-    "challengeTeam": 99999
+    "challengeTeam": 999,
+    "teamBattleSize": 100,
+    "teamChallengePoints": 5,
+    "soloChallengePoints": 1,
+    "bluffChallengePoints": 1
 }

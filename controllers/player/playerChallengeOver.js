@@ -1,66 +1,58 @@
-const games = require("../../model/game");
+const { getGameById, getPlayerById } = require("../../model/Games");
+const { sendError } = require("../socket/error");
+const {
+	gameUpdatedToSender,
+	gameUpdatedToAll,
+} = require("../socket/gameUpdated");
 const resolutionTimer = require("../timer/resolutionTimer");
-const turnResolution = require("../turn/turnResolution");
 
 async function playerChallengeOver(socket, payload) {
-	const { player, gameId } = payload;
-
 	try {
-		// check data //
+		// check payload //
+		const { player, gameId } = payload;
 		if (!player || !gameId) {
-			throw new Error("Player ready : data are incomplete");
+			throw new Error("Data are missing");
 		}
 
 		// get game //
-		const game = Object.values(games).find((game) => game.id === gameId);
-
-		// check if game exists //
+		const [gameIdDb, game] = getGameById(gameId);
 		if (!game) {
-			throw new Error("Player ready : game does not exists");
+			throw new Error("Game does not exists");
 		}
 
-		// check if player in game //
-		const playerCurrent = game.players.find(
-			(playerInGame) => playerInGame.id === player.id
-		);
+		// check player belongs to game //
+		const playerCurrent = getPlayerById(game, player.id);
 		if (!playerCurrent) {
-			throw new Error("Player ready : player does not exists");
+			throw new Error("Player does not exists");
 		}
 
 		// update player //
-		game.players.find((playerInGame) => playerInGame.id === player.id).state =
-			"waiting";
-
-		// send info to all players in room //
-		socket.emit("game:updated", {
-			success: true,
-			data: game,
-		});
+		playerCurrent.state = "waiting";
 
 		// if all are waiting //
 		if (
-			game.players.filter((playerInGame) => playerInGame.state === "waiting")
-				.length === game.players.length
+			game.players.filter((p) => p.state === "waiting").length ===
+			game.players.length
 		) {
-			game.players.map(
-				(playerInGame) => (playerInGame.state = "turn_resolution")
-			);
-
+			game.players.map((p) => (p.state = "turn_resolution"));
+			game.resolutionStart = Date.now();
 			resolutionTimer(socket, game);
 
-			// send info to all players in room //
-			socket.emit("game:updated", {
-				success: true,
-				data: game,
-			});
-
-			// send info to all players in room //
-			socket.to(`game_id=${gameId}`).emit("game:updated", {
-				success: true,
-				data: game,
-			});
+			//  send response to all //
+			gameUpdatedToAll(socket, game);
 		}
-	} catch (error) {}
+
+		//  send response to sender //
+		gameUpdatedToSender(socket, game);
+	} catch (error) {
+		// send response to sender //
+		const event = "game:updated";
+		const message = error.message;
+		sendError(socket, event, {
+			success: false,
+			message,
+		});
+	}
 }
 
 module.exports = playerChallengeOver;

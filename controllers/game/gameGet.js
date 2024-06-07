@@ -1,32 +1,23 @@
-const games = require("../../model/game.js");
+const { getGameById } = require("../../model/Games.js");
 
 async function gameGet(socket, payload) {
 	try {
+		// check payload //
 		const { player, gameId } = payload;
-
-		// check data //
 		if (!player || !gameId) {
-			throw new Error("Game get: data are incomplete");
+			throw new Error("Data are missing");
 		}
 
 		// get game //
-		const game = Object.values(games).find((game) => game.id === gameId);
-
-		// check if game exists //
+		const [gameIdDb, game] = getGameById(gameId);
 		if (!game) {
-			throw new Error("Game get: game does not exists");
+			throw new Error("Game does not exists");
 		}
 
 		// check if player belong to this game //
 		const playerCurrent = game.players.find(
 			(playerInGame) => playerInGame.id === player.id
 		);
-		// if (
-		// 	!game.players.find((playerInGame) => playerInGame.id === player.id) &&
-		// 	game.master.id !== player.id
-		// ) {
-		// 	throw new Error("Game get: this player does not belong to this game");
-		// }
 
 		// send response to sender //
 		socket.emit("game:get:response", {

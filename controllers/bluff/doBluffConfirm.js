@@ -1,5 +1,4 @@
-const { getGameById } = require("../../utils/game");
-const { getPlayerById } = require("../../utils/player");
+const { getGameById, getPlayerById } = require("../../model/Games");
 const { gameUpdatedToAll } = require("../socket/gameUpdated");
 
 function doBluffconfirm(socket, payload) {
@@ -9,10 +8,10 @@ function doBluffconfirm(socket, payload) {
 		return console.log("do bluff confirm : payload missing");
 	}
 
-	// check game //
-	const game = getGameById(gameId);
+	// get game //
+	const [gameIdDb, game] = getGameById(gameId);
 	if (!game) {
-		return console.log("do bluff confirm : game missing");
+		throw new Error("Game does not exists");
 	}
 
 	// check player //
@@ -24,10 +23,7 @@ function doBluffconfirm(socket, payload) {
 	}
 
 	// update player //
-	player.doBluff = "success";
-
-	// dev //
-	// console.log(getGameById(gameId).players.map((p) => [p.name, p.doBluff]));
+	player.doBluff = "bluff_success";
 
 	gameUpdatedToAll(socket, game);
 }

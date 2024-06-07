@@ -1,10 +1,9 @@
 const { io } = require("../../config/server");
-const games = require("../../model/game");
+const { getGames } = require("../../model/Games");
 const gameTimer = require("../timer/gameTimer");
 
 async function startAllTimers() {
-	Object.values(games).map((game) => {
-		console.log("gameId : ", game.id);
+	Object.values(getGames()).map((game) => {
 		gameTimer(io, game);
 	});
 }

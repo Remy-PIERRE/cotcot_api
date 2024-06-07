@@ -1,63 +1,55 @@
-const { db } = require("../../config/database");
-const games = require("../../model/game.js");
+const {
+	getGameById,
+	getPlayerById,
+	removePlayerFromGame,
+} = require("../../model/Games.js");
+const { updateGamePlayersIntoDB } = require("../db/update.js");
+const { sendError } = require("../socket/error.js");
+const { gameLeaved } = require("../socket/gameLeaved.js");
+const { gameUpdatedToAll } = require("../socket/gameUpdated.js");
+const { leaveRoom } = require("../socket/room.js");
 
 async function gameLeave(socket, payload) {
-	const { player, gameId } = payload;
-
 	try {
-		// check data //
+		// check payload //
+		const { player, gameId } = payload;
 		if (!player || !gameId) {
-			throw new Error("Game leave : data are incomplete");
+			throw new Error("Data are missing");
 		}
 
 		// get game //
-		const [gameDbId, game] = Object.entries(games).find(([key, value]) => {
-			if (value.id === gameId) {
-				return [key, value];
-			}
-		});
-
-		// check if game exists //
+		const [gameIdDb, game] = getGameById(gameId);
 		if (!game) {
-			throw new Error("Game leave : game does not exists");
+			throw new Error("Game does not exists");
 		}
 
-		// check if player belongs to game //
-		const playerInGame = game.players.find(
-			(playerInGame) => playerInGame.id === player.id
-		);
-		if (!playerInGame) {
-			throw new Error("Game leave: this player does notbelong to this game");
+		// check player belong to game //
+		const playerCurrent = getPlayerById(game, player.id);
+		if (!playerCurrent) {
+			throw new Error("Player not in game");
 		}
 
-		// update games object //
-		game.players = game.players.filter(
-			(playerInGame) => playerInGame.id !== player.id
-		);
+		// remove player from game //
+		removePlayerFromGame(game, playerCurrent);
 
 		// update db //
-		await db.collection("in_progress").doc(gameDbId).update({
-			players: game.players,
-		});
+		await updateGamePlayersIntoDB(gameIdDb, game.players);
 
-		// send response to sender //
-		socket.emit("game:leave:response", {
-			success: true,
-		});
-
-		// remove player from room //
-		socket.leave(`game_id=${gameId}`);
-
-		// send info to all players in room //
-		socket.to(`game_id=${gameId}`).emit("game:updated", {
-			success: true,
-			data: game,
-		});
+		// remove player from room && send response //
+		leaveRoom(socket, gameId);
+		gameLeaved(socket);
+		gameUpdatedToAll(socket, game);
 	} catch (error) {
 		// send response to sender //
-		socket.emit("game:leave:response", {
+		const event = "game:leave:response";
+		const message = error.message;
+
+		// DEV //
+		console.log("error : ", message);
+
+		sendError(socket, event, {
 			success: false,
-			message: error.message,
+			message,
 		});
 	}
 }

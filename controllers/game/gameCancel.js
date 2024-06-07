@@ -1,55 +1,51 @@
-const { db } = require("../../config/database");
-const games = require("../../model/game.js");
+const { deleteGame, getGameById } = require("../../model/Games.js");
+const { deleteGameFromDb } = require("../db/delete.js");
+const { sendError } = require("../socket/error.js");
+const {
+	gameDeletedToSender,
+	gameDeletedToAll,
+} = require("../socket/gameDeleted.js");
+const { clearRoom } = require("../socket/room.js");
 
 async function gameCancel(socket, payload) {
-	const { player, gameId } = payload;
-
 	try {
-		// check data //
+		// check payload //
+		const { player, gameId } = payload;
 		if (!player || !gameId) {
-			throw new Error("Game cancel : data are incomplete");
+			throw new Error("Data are missing");
 		}
 
 		// get game //
-		const [gameDbId, game] = Object.entries(games).find(([key, value]) => {
-			if (value.id === gameId) {
-				return [key, value];
-			}
-		});
-
-		// check if game exists //
+		const [gameIdDb, game] = getGameById(gameId);
 		if (!game) {
-			throw new Error("Game cancel : game does not exists");
+			throw new Error("Game does not exists");
 		}
 
 		// check if player is game master //
 		if (game.master.id !== player.id) {
-			throw new Error("Game cancel : denied");
+			throw new Error("Action denied");
 		}
 
 		// send to db //
-		await db.collection("in_progress").doc(gameDbId).delete();
+		const collection = "in_progress";
+		await deleteGameFromDb(gameIdDb, collection);
 
 		// update games object //
-		delete games[gameDbId];
+		deleteGame(gameIdDb);
 
-		// send response to sender //
-		socket.emit("game:canceled", {
-			success: true,
-		});
-
-		// send info to all players in room //
-		socket.to(`game_id=${gameId}`).emit("game:canceled", {
-			success: true,
-		});
+		// send response //
+		gameDeletedToSender(socket);
+		gameDeletedToAll(socket, gameId);
 
 		// clear socket room //
-		socket.in(`game_id=${gameId}`).socketsLeave(`game_id=${gameId}`);
+		clearRoom(socket, gameId);
 	} catch (error) {
 		// send response to sender //
-		socket.emit("game:canceled", {
+		const event = "game:canceled";
+		const message = error.message;
+		sendError(socket, event, {
 			success: false,
-			message: error.message,
+			message,
 		});
 	}
 }

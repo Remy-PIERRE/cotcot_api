@@ -1,82 +1,75 @@
-const { db } = require("../../config/database");
-const games = require("../../model/game.js");
+const {
+	getGameById,
+	getPlayerById,
+	addPlayerIntoGame,
+} = require("../../model/Games.js");
+const { updateGamePlayersIntoDB } = require("../db/update.js");
+const { sendError } = require("../socket/error.js");
+const { gameJoined } = require("../socket/gameJoined.js");
+const { gameUpdatedToAll } = require("../socket/gameUpdated.js");
+const { joinRoom } = require("../socket/room.js");
 
 async function gameJoin(socket, payload) {
 	try {
+		// check payload //
 		const { player, gameId } = payload;
-		console.log("joining : ", payload.player.name, payload.gameId);
-
-		// check data //
-		if (!player.id || !player.name || !player.pseudo || !gameId) {
-			throw new Error("Game join : data are missing");
+		if (!player || !gameId) {
+			throw new Error("Data are missing");
 		}
+
+		// DEV //
+		console.log("player joining : ", payload.player.name, payload.gameId);
 
 		// get game //
-		const [gameDbId, game] = Object.entries(games).find(([key, value]) => {
-			if (value.id === gameId) {
-				return [key, value];
-			}
-		});
-
-		// check if game exists //
+		const [gameIdDb, game] = getGameById(gameId);
 		if (!game) {
-			throw new Error("Game join : game does not exists");
+			throw new Error("Game does not exists");
 		}
 
-		// check if player already in game //
-		if (game.players.find((playerInGame) => playerInGame.id === player.id)) {
-			socket.join(`game_id=${game.id}`);
-
-			return socket.emit("game:join:response", {
-				success: true,
-				data: game,
-			});
+		// if player is already registered into game //
+		const playerCurrent = getPlayerById(game, player.id);
+		if (playerCurrent) {
+			console.log("already in room : ", player.name);
+			joinRoom(socket, gameId);
+			gameJoined(socket, game);
+			return;
 		}
 
-		// check if party is full //
-		if (game.players.length >= game.maxPlayers) {
-			throw new Error("Game join : game is full");
+		// forbid joining if party is full //
+		if (game.players && game.players.length >= game.maxPlayers) {
+			throw new Error("Game is full");
 		}
 
-		// check if kicked //
+		// forbid joining is player was kicked //
 		if (game.kicked && game.kicked.find((kicked) => kicked === player.id)) {
-			throw new Error("Game join : game is full");
+			throw new Error("Entering game denied");
 		}
 
 		// add player to game //
-		game.players.push({
-			...player,
-			points: 0,
-		});
+		setupPlayer(player);
+		addPlayerIntoGame(game, player);
 
 		// update db //
-		// await db.collection("in_progress").doc(gameDbId).update({
-		// 	players: game.players,
-		// });
+		await updateGamePlayersIntoDB(gameIdDb, game.players);
 
-		// add player to room //
-		socket.join(`game_id=${gameId}`);
-
-		// send response to sender //
-		socket.emit("game:join:response", {
-			success: true,
-			data: {
-				...game,
-				player,
-			},
-		});
-
-		// send info to all players in room //
-		socket.to(`game_id=${gameId}`).emit("game:updated", {
-			success: true,
-			data: game,
-		});
+		// add player to room && send response //
+		joinRoom(socket, gameId);
+		gameJoined(socket, game);
+		gameUpdatedToAll(socket, game);
 	} catch (error) {
 		// send response to sender //
-		socket.emit("game:join:response", {
-			message: error.message,
+		const event = "game:join:response";
+		const message = error.message;
+		sendError(socket, event, {
+			success: false,
+			message,
 		});
 	}
+}
+
+function setupPlayer(player) {
+	player.state = "";
+	player.points = 0;
 }
 
 module.exports = gameJoin;
