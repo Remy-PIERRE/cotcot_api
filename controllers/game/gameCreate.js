@@ -33,10 +33,13 @@ async function gameCreate(socket, payload) {
 
 		// send response to sender //
 		gameCreated(socket, game);
+
+		console.log("Game created", game.id, game.type, game.duration);
 	} catch (error) {
 		// send response to sender //
 		const event = "game:create:response";
 		const message = error.message;
+		console.log("Error game created : ", message);
 		sendError(socket, event, {
 			success: false,
 			message,

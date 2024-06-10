@@ -52,6 +52,8 @@ async function turnStart(socket, gameIdDb, game) {
 	// emit game updated to all //
 	gameUpdatedToSender(socket, game);
 	gameUpdatedToAll(socket, game);
+
+	console.log("turn started : all challenge displayed");
 }
 
 function updateGameTurn(game) {

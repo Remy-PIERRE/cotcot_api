@@ -33,12 +33,14 @@ async function gameLeave(socket, payload) {
 		removePlayerFromGame(game, playerCurrent);
 
 		// update db //
-		await updateGamePlayersIntoDB(gameIdDb, game.players);
+		await updateGamePlayersIntoDB(gameIdDb, playerCurrent);
 
 		// remove player from room && send response //
 		leaveRoom(socket, gameId);
 		gameLeaved(socket);
 		gameUpdatedToAll(socket, game);
+
+		console.log("Gameleaved : ", game.id, player.name);
 	} catch (error) {
 		// send response to sender //
 		const event = "game:leave:response";

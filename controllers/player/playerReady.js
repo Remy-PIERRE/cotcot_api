@@ -38,6 +38,8 @@ async function playerReady(socket, payload) {
 		// update player //
 		setupPlayer(playerCurrent);
 
+		console.log("player ready : ", player.name);
+
 		// if all ready => new turn //
 		if (
 			game.players.filter((p) => p.state === "ready").length ===
@@ -49,6 +51,7 @@ async function playerReady(socket, payload) {
 		// send response to sender //
 		const event = "game:start:response";
 		const message = error.message;
+		console.log("Error player ready : ", message);
 		sendError(socket, event, {
 			success: false,
 			message,

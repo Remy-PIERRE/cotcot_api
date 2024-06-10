@@ -40,10 +40,13 @@ async function gameStart(socket, payload) {
 		// send response to sender //
 		gameStarted(socket, game);
 		gameUpdatedToAll(socket, game);
+
+		console.log("game started : ", game.id);
 	} catch (error) {
 		// send response to sender //
 		const event = "game:start:response";
 		const message = error.message;
+		console.log("Error game started : ", message);
 		sendError(socket, event, {
 			success: false,
 			message,

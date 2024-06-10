@@ -43,10 +43,13 @@ async function gamekick(socket, payload) {
 		// TODO - leavePlayerFromRoom(socket, gameId, targetCurrent);
 		gameKicked(socket, game);
 		gameUpdatedToAll(socket, game);
+
+		console.log("player kicked from game : ", game.id, target.name);
 	} catch (error) {
 		// send response to sender //
 		const event = "game:kick:response";
 		const message = error.message;
+		console.log("Error game kick : ", message);
 		sendError(socket, event, {
 			success: false,
 			message,

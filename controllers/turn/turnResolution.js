@@ -43,6 +43,11 @@ async function turnResolution(socket, game) {
 		resolveBattleChallenge(game);
 	}
 
+	console.log(
+		"turn resolution : ",
+		game.players.map((p) => p.state)
+	);
+
 	if (!game.players.find((p) => p.state !== "")) {
 		game.players.map((p) => (p.state = ""));
 
@@ -54,6 +59,8 @@ async function turnResolution(socket, game) {
 		// emit game updated to all //
 		gameUpdatedToSender(socket, game);
 		gameUpdatedToAll(socket, game);
+
+		console.log("turn over", game.id);
 	}
 }
 

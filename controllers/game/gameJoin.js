@@ -56,10 +56,13 @@ async function gameJoin(socket, payload) {
 		joinRoom(socket, gameId);
 		gameJoined(socket, game);
 		gameUpdatedToAll(socket, game);
+
+		console.log("Game joined : ", game.id, player.name);
 	} catch (error) {
 		// send response to sender //
 		const event = "game:join:response";
 		const message = error.message;
+		console.log("game joined error : ", message);
 		sendError(socket, event, {
 			success: false,
 			message,
