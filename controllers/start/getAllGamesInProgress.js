@@ -88,9 +88,9 @@ const gameDummy = {
 
 async function getAllGamesInProgress() {
 	// DEV //
-	addNewGame("qBvNeMZubAbAFd81NuFK", gameDummy);
-	startAllTimers();
-	return;
+	// addNewGame("qBvNeMZubAbAFd81NuFK", gameDummy);
+	// startAllTimers();
+	// return;
 
 	try {
 		const data = await db.collection("in_progress").get();
